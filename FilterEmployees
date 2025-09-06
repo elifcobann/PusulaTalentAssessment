@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+
+public static class FilterEmployees
+{
+   
+    public static string FilterEmployees(IEnumerable<(string Name, int Age, string Department, decimal Salary, DateTime HireDate)> employees)
+    {
+        if (employees == null)
+        {
+            var emptyRes = new
+            {
+                Names = new List<string>(),
+                TotalSalary = 0m,
+                AverageSalary = 0m,
+                MinSalary = 0m,
+                MaxSalary = 0m,
+                Count = 0
+            };
+            return JsonSerializer.Serialize(emptyRes);
+        }
+
+       
+        var hireCutoff = new DateTime(2017, 1, 1);
+
+        var filtered = employees
+            .Where(e =>
+                e.Age >= 25 && e.Age <= 40 &&
+                (!string.IsNullOrEmpty(e.Department) &&
+                 (string.Equals(e.Department, "IT", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(e.Department, "Finance", StringComparison.OrdinalIgnoreCase)) &&
+                e.Salary >= 5000m && e.Salary <= 9000m &&
+                e.HireDate >= hireCutoff
+            )
+            .ToList();
+
+        if (!filtered.Any())
+        {
+            var emptyRes = new
+            {
+                Names = new List<string>(),
+                TotalSalary = 0m,
+                AverageSalary = 0m,
+                MinSalary = 0m,
+                MaxSalary = 0m,
+                Count = 0
+            };
+            return JsonSerializer.Serialize(emptyRes);
+        }
+
+        var names = filtered
+            .Select(e => e.Name)
+            .OrderByDescending(n => n?.Length ?? 0)
+            .ThenBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        decimal totalSalary = filtered.Sum(e => e.Salary);
+        decimal averageSalary = Math.Round(filtered.Average(e => e.Salary), 2);
+        decimal minSalary = filtered.Min(e => e.Salary);
+        decimal maxSalary = filtered.Max(e => e.Salary);
+        int count = filtered.Count;
+
+        var result = new
+        {
+            Names = names,
+            TotalSalary = totalSalary,
+            AverageSalary = averageSalary,
+            MinSalary = minSalary,
+            MaxSalary = maxSalary,
+            Count = count
+        };
+
+        return JsonSerializer.Serialize(result);
+    }
+}
