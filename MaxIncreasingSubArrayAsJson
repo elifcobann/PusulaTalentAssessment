@@ -1,0 +1,67 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+
+public static class MaxIncreasingSubArrayAsJson
+{
+    public static string MaxIncreasingSubarrayAsJson(List<int> numbers)
+    {
+        if (numbers == null || numbers.Count == 0)
+        {
+            return JsonSerializer.Serialize(new List<int>());
+        }
+
+        int bestStart = 0;
+        int bestLen = 0;
+        long bestSum = long.MinValue;
+
+        int curStart = 0;
+        int curLen = 1;
+        long curSum = numbers[0];
+
+        for (int i = 1; i < numbers.Count; i++)
+        {
+            if (numbers[i] > numbers[i - 1])
+            {
+                curLen++;
+                curSum += numbers[i];
+            }
+            else
+            {
+                if (curLen > 0)
+                {
+                    if (curSum > bestSum || (curSum == bestSum && curLen > bestLen))
+                    {
+                        bestSum = curSum;
+                        bestLen = curLen;
+                        bestStart = curStart;
+                    }
+                }
+
+                // start new subarray at i
+                curStart = i;
+                curLen = 1;
+                curSum = numbers[i];
+            }
+        }
+
+        if (curLen > 0)
+        {
+            if (curSum > bestSum || (curSum == bestSum && curLen > bestLen))
+            {
+                bestSum = curSum;
+                bestLen = curLen;
+                bestStart = curStart;
+            }
+        }
+
+        if (bestLen <= 0)
+        {
+            return JsonSerializer.Serialize(new List<int>());
+        }
+
+        var result = numbers.GetRange(bestStart, bestLen);
+        return JsonSerializer.Serialize(result);
+    }
+}
