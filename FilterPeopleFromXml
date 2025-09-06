@@ -1,0 +1,107 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.Json;
+using System.Xml.Linq;
+
+public static class FilterPeopleFromXml
+{
+    public static string FilterPeopleFromXml(string xmlData)
+    {
+        if (string.IsNullOrWhiteSpace(xmlData))
+        {
+            var emptyRes = new
+            {
+                Names = new List<string>(),
+                TotalSalary = 0m,
+                AverageSalary = 0m,
+                MaxSalary = 0m,
+                Count = 0
+            };
+            return JsonSerializer.Serialize(emptyRes);
+        }
+
+        try
+        {
+            var doc = XDocument.Parse(xmlData);
+            var persons = doc.Descendants("Person")
+                             .Select(p => new
+                             {
+                                 Name = (string)p.Element("Name") ?? string.Empty,
+                                 Age = ParseIntSafe((string)p.Element("Age")),
+                                 Department = ((string)p.Element("Department") ?? string.Empty).Trim(),
+                                 Salary = ParseDecimalSafe((string)p.Element("Salary")),
+                                 HireDate = ParseDateSafe((string)p.Element("HireDate"))
+                             });
+
+          
+            var cutoff = new DateTime(2019, 1, 1);
+
+            var filtered = persons
+                .Where(p => p.Age > 30 &&
+                            string.Equals(p.Department, "IT", StringComparison.OrdinalIgnoreCase) &&
+                            p.Salary > 5000m &&
+                            p.HireDate.HasValue &&
+                            p.HireDate.Value < cutoff)
+                .ToList();
+
+            var names = filtered.Select(f => f.Name)
+                                .OrderBy(n => n, StringComparer.Ordinal)
+                                .ToList();
+
+            decimal totalSalary = filtered.Sum(f => f.Salary);
+            decimal averageSalary = filtered.Count > 0 ? Math.Round(filtered.Average(f => f.Salary), 2) : 0m;
+            decimal maxSalary = filtered.Count > 0 ? filtered.Max(f => f.Salary) : 0m;
+            int count = filtered.Count;
+
+            var result = new
+            {
+                Names = names,
+                TotalSalary = totalSalary,
+                AverageSalary = averageSalary,
+                MaxSalary = maxSalary,
+                Count = count
+            };
+
+            return JsonSerializer.Serialize(result);
+        }
+        catch
+        {
+            var emptyRes = new
+            {
+                Names = new List<string>(),
+                TotalSalary = 0m,
+                AverageSalary = 0m,
+                MaxSalary = 0m,
+                Count = 0
+            };
+            return JsonSerializer.Serialize(emptyRes);
+        }
+    }
+
+    private static int ParseIntSafe(string s)
+    {
+        if (int.TryParse((s ?? "").Trim(), out int v)) return v;
+        return 0;
+    }
+
+    private static decimal ParseDecimalSafe(string s)
+    {
+        if (decimal.TryParse((s ?? "").Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal v))
+            return v;
+        
+        if (decimal.TryParse((s ?? "").Trim(), out v))
+            return v;
+        return 0m;
+    }
+
+    private static DateTime? ParseDateSafe(string s)
+    {
+        if (DateTime.TryParse((s ?? "").Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dt))
+            return dt;
+        if (DateTime.TryParse((s ?? "").Trim(), out dt))
+            return dt;
+        return null;
+    }
+}
