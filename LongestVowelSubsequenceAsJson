@@ -1,0 +1,67 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+
+public static class LongestVowelSubsequenceAsJson
+{
+    public static string LongestVowelSubsequenceAsJson(List<string> words)
+    {
+        if (words == null || words.Count == 0)
+        {
+            return JsonSerializer.Serialize(new List<object>());
+        }
+
+        HashSet<char> vowels = new HashSet<char>("aeiouAEIOU".ToCharArray());
+        var results = new List<object>();
+
+        foreach (var w in words)
+        {
+            string word = w ?? string.Empty;
+            int bestLen = 0;
+            int bestStart = -1;
+
+            int curStart = -1;
+            int curLen = 0;
+
+            for (int i = 0; i < word.Length; i++)
+            {
+                if (vowels.Contains(word[i]))
+                {
+                    if (curLen == 0)
+                    {
+                        curStart = i;
+                    }
+                    curLen++;
+                }
+                else
+                {
+                    if (curLen > bestLen)
+                    {
+                        bestLen = curLen;
+                        bestStart = curStart;
+                    }
+                    curLen = 0;
+                    curStart = -1;
+                }
+            }
+
+            if (curLen > bestLen)
+            {
+                bestLen = curLen;
+                bestStart = curStart;
+            }
+
+            string seq = string.Empty;
+            if (bestLen > 0 && bestStart >= 0)
+            {
+                seq = word.Substring(bestStart, bestLen);
+            }
+
+            results.Add(new { word = word, sequence = seq, length = bestLen });
+        }
+
+        
+        return JsonSerializer.Serialize(results);
+    }
+}
